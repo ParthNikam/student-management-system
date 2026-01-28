@@ -3,18 +3,24 @@ import {useState, useEffect } from "react";
 import {signup} from "@/api/userAuth";
 import { useRouter } from "next/navigation";
 
+import { useUser } from "@/context/userContext";
+
 export default function Signup() {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const role = "student";
     const router = useRouter();
+    const { login } = useUser();
 
     const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const response = await signup(name, email, password, role);
         if (response.success) {
-         router.push("/home");
+            if (response.token) {
+                login(response.token);
+            }
+            router.push("/home");
         }
     }
 

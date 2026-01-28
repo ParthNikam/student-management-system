@@ -35,14 +35,23 @@ export const signout = async () => {
 }
 
 
-export const me = async () => {
+export const me = async (token?: string) => {
+    const authToken = token || (typeof window !== 'undefined' ? localStorage.getItem("token") : null);
+    
+    if (!authToken) return null;
+
     const response = await fetch(`${backendUrl}/me`, {
         method: 'GET',
         headers: {
-            'Authorization': `Bearer ${localStorage.getItem("token")}`,
+            'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json',
         },
     });
+    
+    if (!response.ok) {
+        return null;
+    }
+
     const data = await response.json();
     return data;
 }

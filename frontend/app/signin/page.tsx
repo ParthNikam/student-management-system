@@ -2,11 +2,13 @@
 import {useState, useEffect } from "react";
 import {signin} from "@/api/userAuth";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/context/userContext";
 
 export default function Signin() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const router = useRouter();
+    const { login, user } = useUser();
 
     // we get a token from the backend, we need to store the token for future requests
     // we can use localStorage for this
@@ -21,8 +23,8 @@ export default function Signin() {
         e.preventDefault();
         const response = await signin(email, password);
         if (response.success) {
-         localStorage.setItem("token", response.token);
-         router.push("/home");
+            login(response.token);
+            router.push("/home");
         }
     }
 
