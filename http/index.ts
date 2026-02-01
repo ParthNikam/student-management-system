@@ -21,6 +21,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 expressWs(app);
 
 let allWs: any[] = [];
@@ -31,7 +36,7 @@ let activeSession: { classId: string, startedAt: Date, attendence: Record<string
 app.ws('/ws', (ws, req) => {
   try {
     const token = req.query.token;
-    const { userId, role } = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+    const { userId, role } = jwt.verify(token, process.env.JWT_PASSWORD!) as JwtPayload;
 
     const user = { userId, role };
     allWs.push(ws);
@@ -209,13 +214,24 @@ app.post("/auth/signup", async (req, res) => {
     role: data.role,
   });
 
+  const token = jwt.sign(
+    {
+      role: userDb.role,
+      userId: userDb._id,
+    },
+    process.env.JWT_PASSWORD!
+  );
+
   res.status(201).json({
     success: true,
     data: {
-      _id: userDb._id,
-      name: userDb.name,
-      email: userDb.email,
-      password: userDb.password,
+      token,
+      user: {
+        _id: userDb._id,
+        name: userDb.name,
+        email: userDb.email,
+        role: userDb.role,
+      },
     },
   });
 });
@@ -251,7 +267,15 @@ app.post("/auth/signin", async (req, res) => {
 
   res.status(201).json({
     success: true,
-    data: { token },
+    data: {
+      token,
+      user: {
+        _id: userDb._id,
+        name: userDb.name,
+        email: userDb.email,
+        role: userDb.role,
+      }
+    },
   });
 });
 
@@ -274,6 +298,24 @@ app.get("/auth/me", authMiddleware, async (req, res) => {
       email: userDb.email,
       role: userDb.role,
     },
+  });
+});
+
+app.get("/class/all", authMiddleware, teacherRoleMiddleware, async (req, res) => {
+  const classes = await ClassModel.find({
+    teacherId: req.userId
+  });
+
+  res.status(200).json({
+    success: true,
+    data: classes.map((c: any) => ({
+      _id: c._id,
+      className: c.className,
+      teacherId: c.teacherId,
+      studentIds: c.studentIds,
+      // @ts-ignore
+      studentCount: c.studentIds.length
+    }))
   });
 });
 
