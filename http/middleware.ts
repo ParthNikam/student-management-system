@@ -3,18 +3,21 @@ import jwt, { type JwtPayload } from "jsonwebtoken";
 
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.headers.authorization;
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith("Bearer ")
+    ? authHeader.split(" ")[1]
+    : authHeader;
 
   if (!token) {
     res.status(401).json({
       "success": false,
-      "error":"Unauthorized, token missing or invalid"
+      "error": "Unauthorized, token missing or invalid"
     });
     return;
   }
 
   try {
-    const {userId, role} = jwt.verify(token, process.env.JWT_PASSWORD!) as JwtPayload;
+    const { userId, role } = jwt.verify(token, process.env.JWT_PASSWORD!) as JwtPayload;
     req.userId = userId;
     req.role = role;
 
@@ -23,7 +26,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   } catch (error) {
     res.status(401).json({
       "success": false,
-      "error":"Unauthorized, token missing or invalid"
+      "error": "Unauthorized, token missing or invalid"
     });
   }
 }
@@ -32,7 +35,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
 export const teacherRoleMiddleware = (req: Request, res: Response, next: NextFunction) => {
   if (!req.role || req.role != "teacher") {
     res.status(403).json({
-      "success":false,
+      "success": false,
       "error": "Forbidden, student cannot access"
     });
     return;
