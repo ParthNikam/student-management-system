@@ -1,39 +1,33 @@
 import Image from "next/image";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center gap-y-12 py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            Welcome to Student Management System.
-          </h1>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 font-sans dark:bg-black">
+      <main className="flex w-full max-w-5xl flex-col items-center gap-y-8 px-8 py-24 sm:items-start text-center sm:text-left">
+        {/* Hero Section */}
+        <div className="flex flex-col gap-4">
+             <div className="inline-block rounded-lg bg-zinc-100 px-3 py-1 text-sm dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                Student Management System v0.1
+              </div>
+            <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-zinc-900 dark:text-white">
+                Manage your classroom <br className="hidden sm:inline" />
+                with confidence.
+            </h1>
+            <p className="max-w-[700px] text-lg text-zinc-600 dark:text-zinc-400">
+                An open-source platform for teachers and students to track attendance, manage classes, and stay organized.
+            </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="/signup"
-            target="_self"
-            rel="noopener noreferrer"
-          >
-            Signup
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="/signin"
-            target="_self"
-            rel="noopener noreferrer"
-          >
-            Signin
-          </a>
+
+        {/* Call to Action */}
+        <div className="flex flex-col sm:flex-row gap-4 mt-4 w-full sm:w-auto">
+            <Link href="/signup" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto">Get Started</Button>
+            </Link>
+            <Link href="/signin" className="w-full sm:w-auto">
+                <Button variant="outline" size="lg" className="w-full sm:w-auto">Login</Button>
+            </Link>
         </div>
       </main>
     </div>

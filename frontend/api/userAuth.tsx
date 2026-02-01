@@ -49,9 +49,17 @@ export const me = async (token?: string) => {
     });
     
     if (!response.ok) {
+        // Log error status
+        console.error(`Fetch me failed with status: ${response.status}`);
         return null;
     }
 
-    const data = await response.json();
-    return data;
+    try {
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        const text = await response.text();
+        console.error("Failed to parse JSON from /me. Raw response:", text);
+        throw error;
+    }
 }

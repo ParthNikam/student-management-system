@@ -1,125 +1,106 @@
-"use client"
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { me } from '@/api/userAuth';
-import { useRouter } from 'next/navigation';
+"use client";
 
-export interface User {
-    id?: string;
-    name: string;
-    email: string;
-    section: string;
-    role: "teacher" | "student";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { me, signout as apiSignout } from '../api/userAuth';
+
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  // Add other fields as necessary
 }
 
 interface UserContextType {
-    user: User | null;
-    loading: boolean;
-    setUser: (user: User | null) => void;
-    login: (token: string) => void;
-    fetchUser: () => Promise<void>;
-    logout: () => void;
+  user: User | null;
+  loading: boolean;
+  setUser: (user: User | null) => void;
+  login: (user: User, token: string) => void;
+  logout: () => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-export const UserProvider = ({ children, initialUser }: { children: React.ReactNode, initialUser?: User | null }) => {
-    const [user, setUser] = useState<User | null>(initialUser || null);
-    const [loading, setLoading] = useState(true);
-    const router = useRouter();
+export const UserProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-    const fetchUser = async () => {
-        setLoading(true);
+  // Load user from localStorage immediately on mount
+  useEffect(() => {
+    const initUser = async () => {
+      // 1. Try to get user from local storage for instant access
+      const storedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+
+      if (storedUser) {
         try {
-            // Check cookie first
-            let token = getCookie("token");
-
-            // If no cookie, check localStorage and sync to cookie if present (Migration)
-            if (!token) {
-                const localToken = localStorage.getItem("token");
-                if (localToken) {
-                    token = localToken;
-                    setCookie("token", localToken, 7);
-                }
-            }
-
-            if (token) {
-                const data = await me(token); // actual getting the user data from backend
-                if (data) {
-                    setUser(data);
-                    // Ensure localStorage is synced (optional but good for consistency)
-                    localStorage.setItem("token", token);
-                } else {
-                    deleteCookie("token");
-                    localStorage.removeItem("token");
-                    setUser(null);
-                }
-            } else {
-                setUser(null);
-            }
-        } catch (error) {
-            console.error("Failed to fetch user", error);
-        } finally {
-            setLoading(false);
+            setUser(JSON.parse(storedUser));
+        } catch (e) {
+            console.error("Failed to parse stored user", e);
         }
+      }
+
+      // 2. Verify with backend (or fetch if not in local storage but token exists)
+      if (token) {
+        try {
+          const fetchedUser = await me(token);
+          if (fetchedUser && fetchedUser.success && fetchedUser.data) {
+            setUser(fetchedUser.data);
+            localStorage.setItem('user', JSON.stringify(fetchedUser.data));
+          } else {
+            // Token invalid or expired or bad response
+            logout(); 
+          }
+        } catch (error) {
+          console.error("Failed to fetch user context", error);
+        }
+      } else {
+          // No token, ensure clean state
+          localStorage.removeItem('user');
+          setUser(null);
+      }
+      
+      setLoading(false);
     };
 
-    useEffect(() => {
-        fetchUser();
-    }, []);
+    initUser();
+  }, []);
 
-    const login = (token: string) => {
-        setCookie("token", token, 7);
-        localStorage.setItem("token", token);
-        fetchUser();
-    }
+  const login = (userData: User, token: string) => {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+  };
 
-    const logout = () => {
-        deleteCookie("token");
-        localStorage.removeItem("token");
-        setUser(null);
-        router.push("/signin");
-    };
+  const logout = () => {
+    apiSignout();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    window.location.href = '/signin';
+  };
 
-    return (
-        <UserContext.Provider value={{ user, loading, setUser, login, fetchUser, logout }}>
-            {children}
-        </UserContext.Provider>
-    );
+  // Custom setter to verify we also update localStorage when we manually set user
+  const updateUser = (newUser: User | null) => {
+      setUser(newUser);
+      if (newUser) {
+          localStorage.setItem('user', JSON.stringify(newUser));
+      } else {
+          localStorage.removeItem('user');
+      }
+  };
+
+  return (
+    <UserContext.Provider value={{ user, loading, setUser: updateUser, login, logout }}>
+      {children}
+    </UserContext.Provider>
+  );
 };
 
 export const useUser = () => {
-    const context = useContext(UserContext);
-    if (context === undefined) {
-        throw new Error('useUser must be used within a UserProvider');
-    }
-    return context;
+  const context = useContext(UserContext);
+  if (context === undefined) {
+    throw new Error('useUser must be used within a UserProvider');
+  }
+  return context;
 };
-
-// Helper functions for cookies
-function setCookie(name: string, value: string, days: number) {
-    if (typeof document === 'undefined') return;
-    let expires = "";
-    if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        expires = "; expires=" + date.toUTCString();
-    }
-    document.cookie = name + "=" + (value || "") + expires + "; path=/";
-}
-
-function getCookie(name: string) {
-    if (typeof document === 'undefined') return null;
-    const nameEQ = name + "=";
-    const ca = document.cookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-}
-
-function deleteCookie(name: string) {
-    if (typeof document === 'undefined') return;
-    document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-}
